@@ -13,16 +13,16 @@ static const float      MEM_FILL_FACTOR                 = 0.75;
 static const unsigned   MEM_EXPAND_FACTOR               = 2;
 
 static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
-static const float      MEM_POOL_STORE_FILL_FACTOR      = MEM_FILL_FACTOR;
-static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = MEM_EXPAND_FACTOR;
+static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75; /* MEM_FILL_FACTOR; */
+static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2; /* MEM_EXPAND_FACTOR; */
 
 static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 40;
-static const float      MEM_NODE_HEAP_FILL_FACTOR       = MEM_FILL_FACTOR;
-static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = MEM_EXPAND_FACTOR;
+static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75; /* MEM_FILL_FACTOR; */
+static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2; /* MEM_EXPAND_FACTOR; */
 
 static const unsigned   MEM_GAP_IX_INIT_CAPACITY        = 40;
-static const float      MEM_GAP_IX_FILL_FACTOR          = MEM_FILL_FACTOR;
-static const unsigned   MEM_GAP_IX_EXPAND_FACTOR        = MEM_EXPAND_FACTOR;
+static const float      MEM_GAP_IX_FILL_FACTOR          = 0.75; /* MEM_FILL_FACTOR; */
+static const unsigned   MEM_GAP_IX_EXPAND_FACTOR        = 2; /* MEM_EXPAND_FACTOR; */
 
 /* Type declarations */
 typedef struct _node {
@@ -70,15 +70,34 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr);
 
 /* Definitions of user-facing functions */
 alloc_status mem_init() {
-    // TODO implement
+    *pool_store = (pool_mgr_pt)malloc(MEM_POOL_STORE_INIT_CAPACITY * sizeof(pool_mgr_t));
 
-    return ALLOC_FAIL;
+    if(pool_store) {
+        return ALLOC_OK;
+    }
+    else {
+        return ALLOC_FAIL;
+    }
 }
 
 alloc_status mem_free() {
-    // TODO implement
+    alloc_status freeStatus = ALLOC_OK, poolCloseStatus;
 
-    return ALLOC_FAIL;
+    for(int i=0; i<pool_store_size; i++) {
+        poolCloseStatus = mem_pool_close((pool_pt)pool_store[i]);
+
+        if(poolCloseStatus != ALLOC_OK) {
+            freeStatus = ALLOC_FAIL;
+        }
+    }
+
+    free(pool_store);
+
+    if(!pool_store) {
+        freeStatus = ALLOC_FAIL;
+    }
+
+    return freeStatus;
 }
 
 pool_pt mem_pool_open(size_t size, alloc_policy policy) {
