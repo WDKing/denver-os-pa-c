@@ -43,6 +43,7 @@ typedef struct _pool_mgr {
     unsigned total_nodes;
     unsigned used_nodes;
     gap_pt gap_ix;
+    unsigned gap_ix_capacity;
 } pool_mgr_t, *pool_mgr_pt;
 
 
@@ -103,6 +104,12 @@ alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
 
     return ALLOC_FAIL;
 }
+
+// NOTE: Allocates a dynamic array. Caller responsible for releasing.
+void mem_inspect_pool(pool_pt pool, pool_segment_pt segments, unsigned *num_segments) {
+    // TODO implement
+}
+
 
 /* Definitions of static functions */
 static alloc_status _mem_resize_pool_store() {
