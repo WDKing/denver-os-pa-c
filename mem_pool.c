@@ -412,6 +412,12 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
     // TODO
     // see above
 
+    alloc_status new_status = ALLOC_OK;
+
+
+
+
+
     return ALLOC_FAIL;
 }
 
