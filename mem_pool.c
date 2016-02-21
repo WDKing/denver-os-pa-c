@@ -26,7 +26,7 @@ static const unsigned   MEM_GAP_IX_EXPAND_FACTOR        = 2; /* MEM_EXPAND_FACTO
 
 /* Type declarations */
 typedef struct _node {
-    alloc_t alloc_record;
+    alloc_pt alloc_record;
     unsigned used;
     unsigned allocated;
     struct _node *next, *prev; // doubly-linked list for gap deletion
@@ -70,7 +70,8 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr);
 
 /* Definitions of user-facing functions */
 alloc_status mem_init() {
-    *pool_store = (pool_mgr_pt)malloc(MEM_POOL_STORE_INIT_CAPACITY * sizeof(pool_mgr_t));
+    pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY * sizeof(pool_mgr_t);
+    *pool_store = malloc(sizeof(pool_store_capacity));
 
     if(pool_store) {
         return ALLOC_OK;
@@ -81,45 +82,133 @@ alloc_status mem_init() {
 }
 
 alloc_status mem_free() {
-    alloc_status freeStatus = ALLOC_OK, poolCloseStatus;
+    alloc_status free_status = ALLOC_OK, pool_close_status;
 
-    for(int i=0; i<pool_store_size; i++) {
-        poolCloseStatus = mem_pool_close((pool_pt)pool_store[i]);
+    for(int index=0; index<pool_store_size; index++) {
+        pool_close_status = mem_pool_close((pool_pt)pool_store[index]);
 
-        if(poolCloseStatus != ALLOC_OK) {
-            freeStatus = ALLOC_FAIL;
+        if(pool_close_status != ALLOC_OK) {
+            free_status = ALLOC_FAIL;
         }
     }
 
     free(pool_store);
 
     if(!pool_store) {
-        freeStatus = ALLOC_FAIL;
+        free_status = ALLOC_FAIL;
     }
 
-    return freeStatus;
+    return free_status;
 }
 
 pool_pt mem_pool_open(size_t size, alloc_policy policy) {
-    // TODO implement
 
-    return NULL;
+    if((pool_store_size/pool_store_capacity) > MEM_POOL_STORE_FILL_FACTOR) {
+        _mem_resize_pool_store();
+    }
+
+    pool_pt new_pool = (pool_pt)malloc(
+        size                                              /* size */
+        + sizeof(alloc_policy)                            /* policy */
+        + sizeof(size_t)                                  /* total_size */
+        + sizeof(size_t)                                  /* alloc_size */
+        + sizeof(unsigned)                                /* num_allocs */
+        + sizeof(unsigned)                                /* num_gaps */
+        + (MEM_NODE_HEAP_INIT_CAPACITY * sizeof(node_pt)) /* node_heap */
+        + sizeof(unsigned)                                /* total_nodes */
+        + sizeof(unsigned)                                /* used_nodes */
+        + (MEM_GAP_IX_INIT_CAPACITY * sizeof(gap_pt))     /* gap_ix */
+        + sizeof(unsigned) );                             /* gap_ix_capacity */
+
+    (new_pool)->policy = policy;
+
+    pool_store[size] = (pool_mgr_pt)new_pool;
+
+    return (pool_pt)pool_store;
 }
 
 alloc_status mem_pool_close(pool_pt pool) {
-    // TODO implement
+    alloc_status free_pool_status = ALLOC_OK;
 
-    return ALLOC_FAIL;
+    for(int index=0; index < pool_store_size; index++) {
+        if(pool == (pool_pt)pool_store[index]) {
+            free(pool_store[index]);
+
+            if(pool_store[index] != NULL) {
+                free_pool_status = ALLOC_FAIL;
+            }
+        }
+    }
+
+    return free_pool_status;
 }
 
 alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
-    // TODO implement
+    // TODO
+    alloc_pt new_alloc = NULL, current_alloc;
+    gap_pt current_gap;
+    node_pt current_node;
+    size_t location, difference;     /* track which gap index to follow */
+    pool_mgr_pt pool_mgr = (pool_mgr_pt)pool;
 
-    return NULL;
+    if((pool_mgr->used_nodes
+            / pool_mgr->total_nodes)
+            > MEM_NODE_HEAP_FILL_FACTOR) {
+        _mem_resize_node_heap((pool_mgr_pt)pool);
+    }
+
+    if(pool_mgr->gap_ix == NULL){
+        new_alloc = NULL;
+    }
+    else {
+        current_gap = pool_mgr->gap_ix;
+        location = current_gap->size;
+
+        if (pool->policy == FIRST_FIT) {
+            for (unsigned index = 0; index < pool_mgr->gap_ix_capacity; index++) {
+                if (current_gap[index].size > size && location > index) {
+                    location = index;
+                }
+            }
+        }
+        else { /* BEST_FIT */
+            for (unsigned index = 0; index < pool_mgr->gap_ix_capacity; index++) {
+                if (current_gap[index].size > size) {
+                    if ((current_gap[index].size - size)
+                        < (current_gap[location].size - size)) {
+                        location = index;
+                    }
+                }
+            }
+        }
+
+        // TODO check if the size matches exactly, if yes done, otherwise continue
+        // find the next spare slot in the node heap
+        // assign the next value to the next node, and the next node's next to this
+        // nodes former next
+        // change allocation of next node to 1, use to 0
+        // change next node's size to difference of current and size
+        // change current node's use to 1, change current size
+
+    }
+
+    return new_alloc;
 }
 
 alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
     // TODO implement
+    // find the node location for which the allocation pointer points
+    // change current node to use 0
+    // if next node is also use 0, change allocation to 0 and add size
+    // to current node, change next to next's next
+    // if previous node is also use 0, change current allocation to 0, and add size
+    // to previous node, change previous' next to current's next
+
+    pool_mgr_pt pool_mgr = (pool_mgr_pt)pool;
+    node_pt curr_node_pt = pool_mgr->node_heap;
+
+
+
 
     return ALLOC_FAIL;
 }
@@ -132,9 +221,21 @@ void mem_inspect_pool(pool_pt pool, pool_segment_pt segments, unsigned *num_segm
 
 /* Definitions of static functions */
 static alloc_status _mem_resize_pool_store() {
-    // TODO implement
+    pool_mgr_pt *new_pool_store = NULL;
+    unsigned new_pool_store_capacity = MEM_POOL_STORE_EXPAND_FACTOR * pool_store_capacity;
+    alloc_status new_alloc_status = ALLOC_OK;
 
-    return ALLOC_FAIL;
+    *new_pool_store = (pool_mgr_pt)realloc(pool_store, new_pool_store_capacity);
+
+    if(new_pool_store == NULL) {
+        new_alloc_status = ALLOC_FAIL;
+    }
+    else {
+        pool_store = new_pool_store;
+        pool_store_capacity = new_pool_store_capacity;
+    }
+
+    return new_alloc_status;
 }
 
 static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
