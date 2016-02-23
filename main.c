@@ -73,11 +73,10 @@ int main(int argc, char *argv[]) {
     /* Personal & Pre-change Testing Code */
 
     printf("%ld\n", __STDC_VERSION__);
-    const unsigned POOL_SIZE = 1000000;
-    pool_pt pool = NULL;
+    pool = NULL;
 
     /* Test mem_init */
-    alloc_status status = mem_init();
+    status = mem_init();
     assert(status == ALLOC_OK);
 
     /* Test mem_pool_open */
@@ -85,7 +84,7 @@ int main(int argc, char *argv[]) {
     assert(pool);
 
     /* Test mem_new_alloc */
-    alloc_pt alloc1 = mem_new_alloc(pool, POOL_SIZE);
+    alloc1 = mem_new_alloc(pool, POOL_SIZE);
     assert(alloc1);
     alloc_pt alloc2 = mem_new_alloc(pool, POOL_SIZE);
     assert(!alloc2);
@@ -109,7 +108,6 @@ int main(int argc, char *argv[]) {
 void print_pool(pool_pt pool) {
     pool_segment_pt segs = NULL;
     unsigned size = 0;
-
     assert(pool);
 
     mem_inspect_pool(pool, &segs, &size);

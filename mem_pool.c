@@ -23,16 +23,16 @@ static const float      MEM_FILL_FACTOR                 = 0.75;
 static const unsigned   MEM_EXPAND_FACTOR               = 2;
 
 static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
-static const float      MEM_POOL_STORE_FILL_FACTOR      = MEM_FILL_FACTOR;
-static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = MEM_EXPAND_FACTOR;
+static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75; // MEM_FILL_FACTOR;
+static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2;    // MEM_EXPAND_FACTOR;
 
 static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 40;
-static const float      MEM_NODE_HEAP_FILL_FACTOR       = MEM_FILL_FACTOR;
-static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = MEM_EXPAND_FACTOR;
+static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75; // MEM_FILL_FACTOR;
+static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2;    // MEM_EXPAND_FACTOR;
 
 static const unsigned   MEM_GAP_IX_INIT_CAPACITY        = 40;
-static const float      MEM_GAP_IX_FILL_FACTOR          = MEM_FILL_FACTOR;
-static const unsigned   MEM_GAP_IX_EXPAND_FACTOR        = MEM_EXPAND_FACTOR;
+static const float      MEM_GAP_IX_FILL_FACTOR          = 0.75; // MEM_FILL_FACTOR;
+static const unsigned   MEM_GAP_IX_EXPAND_FACTOR        = 2;    // MEM_EXPAND_FACTOR;
 
 
 
@@ -101,23 +101,46 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr);
 /*                                      */
 /****************************************/
 alloc_status mem_init() {
-    //TODO
     // ensure that it's called only once until mem_free
     // allocate the pool store with initial capacity
     // note: holds pointers only, other functions to allocate/deallocate
-    pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY * sizeof(pool_mgr_t);
-    *pool_store = malloc(sizeof(pool_store_capacity));
 
-    if(pool_store) {
-        return ALLOC_OK;
+    alloc_status new_alloc =  ALLOC_FAIL;
+
+    if(!pool_store) {
+        unsigned pool_store_element_size =
+                sizeof(char) /* pool: mem */
+                + sizeof(alloc_policy) /* pool: policy */
+                + sizeof(size_t) /* pool: total_size */
+                + sizeof(size_t) /* pool: alloc_size */
+                + sizeof(unsigned) /* pool: num_allocs */
+                + sizeof(unsigned) /* pool: num_gaps */
+                + sizeof(alloc_t)  /* node: alloc_record */
+                + sizeof(unsigned) /* node: used */
+                + sizeof(unsigned) /* node: allocated */
+                + sizeof(node_pt) /* node: next */
+                + sizeof(node_pt) /* node: prev */
+                + sizeof(size_t) /* gap: size */
+                + sizeof(node_pt) /* gap: node */
+                + sizeof(unsigned) /* pool_mgr: total_nodes */
+                + sizeof(unsigned) /* pool_mgr: used_nodes */
+                + sizeof(unsigned);  /* pool_mgr: gap_ix_capacity */
+
+        pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY * pool_store_element_size;
+        pool_store = (pool_mgr_pt *)calloc(pool_store_capacity,pool_store_element_size);
+
+        if(pool_store) {
+            new_alloc = ALLOC_OK;
+        }
     }
     else {
-        return ALLOC_FAIL;
+        new_alloc = ALLOC_CALLED_AGAIN;
     }
+
+    return new_alloc;
 }
 
 alloc_status mem_free() {
-    // TODO
     // ensure that it's called only once for each mem_init
     // make sure all pool managers have been deallocated
     // can free the pool store array
@@ -125,18 +148,20 @@ alloc_status mem_free() {
 
     alloc_status free_status = ALLOC_OK, pool_close_status;
 
-    for(int index=0; index<pool_store_size; index++) {
-        pool_close_status = mem_pool_close((pool_pt)pool_store[index]);
+    if(pool_store) {
+        for(int index=0; index<pool_store_size; index++) {
+            pool_close_status = mem_pool_close((pool_pt)pool_store[index]);
 
-        if(pool_close_status != ALLOC_OK) {
-            free_status = ALLOC_FAIL;
+            if(pool_close_status != ALLOC_OK ){
+                free_status = ALLOC_NOT_FREED;
+            }
         }
-    }
 
-    free(pool_store);
-
-    if(!pool_store) {
-        free_status = ALLOC_FAIL;
+        if(free_status == ALLOC_OK) {
+            free(pool_store);
+            pool_store_size = 0;
+            pool_store_capacity = 0;
+        }
     }
 
     return free_status;
@@ -463,6 +488,8 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
     // loop from num_gaps - 1 until but not including 0:
     //    if the size of the current entry is less than the previous (u - 1)
     //       swap them (by copying) (remember to use a temporary variable)
+
+
 
     return ALLOC_FAIL;
 }
