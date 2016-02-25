@@ -497,44 +497,56 @@ static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
     // update metadata (num_gaps)
     // zero out the element at position num_gaps!
 
-    return ALLOC_FAIL;
+    gap_pt new_gap = pool_mgr->gap_ix;
+    int location = -1;
+
+    for(unsigned index = 0; index < pool_mgr->gap_ix_capacity; index++) {
+        if(new_gap[index].node == node) {
+            location = index;
+        }
+    }
+
+    if(location == -1) {
+        return ALLOC_FAIL;
+    }
+    else {
+        for(int trace = location; trace < pool_mgr->gap_ix_capacity-1; trace++) {
+            new_gap[trace] = new_gap[trace+1];
+        }
+        new_gap[pool_mgr->gap_ix_capacity-1].size = 0;
+        new_gap[pool_mgr->gap_ix_capacity-1].node = NULL;
+
+        pool_mgr->gap_ix_capacity -= 1;
+
+        return ALLOC_OK;
+    }
+
 }
 
 // note: only called by _mem_add_to_gap_ix, which appends a single entry
 static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
-    // TODO
     // the new entry is at the end, so "bubble it up"
     // loop from num_gaps - 1 until but not including 0:
     //    if the size of the current entry is less than the previous (u - 1)
     //       swap them (by copying) (remember to use a temporary variable)
 
-   // gap_pt new_gap = pool_mgr->gap_ix;
-   // gap_pt gap_one, gap_two, temp_gap;
-
-   // for(unsigned index = pool_mgr->gap_ix_capacity; index > 0; index--) {
-   //     gap_one = new_gap + (sizeof(gap_pt) * index);
-   //     gap_two = new_gap + (sizeof(gap_pt) * (index - 1));
-
-   //     if(gap_one->size < gap_two->size) {
-   //         temp_gap = gap_one;
-   //         gap_one = gap_two;
-   //         gap_two = temp_gap;
-   //     }
-   // }
-
-
-    gap_pt new_gap = pool_mgr->gap_ix,
+    gap_pt new_gap = pool_mgr->gap_ix;
     gap_t temp_gap;
 
-    for(unsigned index = pool_mgr->gap_ix_capacity; index > 0; index--) {
-        if(new_gap[index].size < new_gap[index-1].size) {
-            temp_gap = new_gap[index];
-            new_gap[index-1] = temp_gap;
-            new_gap[index] = temp_gap;
+    if(new_gap) {
+        for (unsigned index = pool_mgr->gap_ix_capacity; index > 0; index--) {
+            if (new_gap[index].size < new_gap[index - 1].size) {
+                temp_gap = new_gap[index];
+                new_gap[index - 1] = temp_gap;
+                new_gap[index] = temp_gap;
+            }
         }
-    }
 
-    return ALLOC_OK;
+        return ALLOC_OK;
+    }
+    else {
+        return ALLOC_FAIL;
+    }
 }
 
 
