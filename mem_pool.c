@@ -185,30 +185,46 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     //   initialize pool mgr
     //   link pool mgr to pool store
     // return the address of the mgr, cast to (pool_pt)
+    pool_pt new_pool = NULL;
 
+    if(pool_store) {
 
-    if((pool_store_size/pool_store_capacity) > MEM_POOL_STORE_FILL_FACTOR) {
-        _mem_resize_pool_store();
+        if((pool_store_size/pool_store_capacity) > MEM_POOL_STORE_FILL_FACTOR) {
+            _mem_resize_pool_store();
+        }
+
+        new_pool = (pool_pt)malloc(
+                sizeof(char)                     /* size */
+                + sizeof(alloc_policy)  /* policy */
+                + sizeof(size_t)         /* total_size */
+                + sizeof(size_t)        /* alloc_size */
+                + sizeof(unsigned)       /* num_allocs */
+                + sizeof(unsigned)       /* num_gaps */
+                + sizeof(node_pt) /* node_heap */
+                + sizeof(unsigned)        /* total_nodes */
+                + sizeof(unsigned)      /* used_nodes */
+                + sizeof(gap_pt)     /* gap_ix */
+                + sizeof(unsigned) ) ;   /* gap_ix_capacity */
+
+        if(new_pool) {
+            // TODO - finish step by step as above
+            (new_pool)->policy = policy;
+            (new_pool)->mem = (char *)malloc(size);
+            (new_pool)->total_size = size;
+            (new_pool)->alloc_size = MEM_POOL_STORE_INIT_CAPACITY;
+            (new_pool)->num_allocs = 0;
+            (new_pool)->num_gaps = 1;
+            ((pool_mgr_pt)new_pool)->node_heap = (node_pt)malloc(MEM_NODE_HEAP_INIT_CAPACITY * sizeof(node_t));
+            ((pool_mgr_pt)new_pool)->gap_ix = (gap_pt)malloc(MEM_GAP_IX_INIT_CAPACITY * sizeof(gap_t));
+            ((pool_mgr_pt)new_pool)->gap_ix_capacity = MEM_GAP_IX_INIT_CAPACITY;
+
+            pool_store[size] = (pool_mgr_pt)new_pool;
+            pool_store_size++;
+        }
+
     }
 
-    pool_pt new_pool = (pool_pt)malloc(
-        size                                              /* size */
-        + sizeof(alloc_policy)                            /* policy */
-        + sizeof(size_t)                                  /* total_size */
-        + sizeof(size_t)                                  /* alloc_size */
-        + sizeof(unsigned)                                /* num_allocs */
-        + sizeof(unsigned)                                /* num_gaps */
-        + (MEM_NODE_HEAP_INIT_CAPACITY * sizeof(node_pt)) /* node_heap */
-        + sizeof(unsigned)                                /* total_nodes */
-        + sizeof(unsigned)                                /* used_nodes */
-        + (MEM_GAP_IX_INIT_CAPACITY * sizeof(gap_pt))     /* gap_ix */
-        + sizeof(unsigned) );                             /* gap_ix_capacity */
-
-    (new_pool)->policy = policy;
-
-    pool_store[size] = (pool_mgr_pt)new_pool;
-
-    return (pool_pt)pool_store;
+    return new_pool;
 }
 
 alloc_status mem_pool_close(pool_pt pool) {
@@ -416,6 +432,9 @@ static alloc_status _mem_resize_pool_store() {
      */
     // don't forget to update capacity variables
 
+
+
+
     pool_mgr_pt *new_pool_store = NULL;
     unsigned new_pool_store_capacity = MEM_POOL_STORE_EXPAND_FACTOR * pool_store_capacity;
     alloc_status new_alloc_status = ALLOC_OK;
@@ -489,9 +508,33 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
     //    if the size of the current entry is less than the previous (u - 1)
     //       swap them (by copying) (remember to use a temporary variable)
 
+   // gap_pt new_gap = pool_mgr->gap_ix;
+   // gap_pt gap_one, gap_two, temp_gap;
+
+   // for(unsigned index = pool_mgr->gap_ix_capacity; index > 0; index--) {
+   //     gap_one = new_gap + (sizeof(gap_pt) * index);
+   //     gap_two = new_gap + (sizeof(gap_pt) * (index - 1));
+
+   //     if(gap_one->size < gap_two->size) {
+   //         temp_gap = gap_one;
+   //         gap_one = gap_two;
+   //         gap_two = temp_gap;
+   //     }
+   // }
 
 
-    return ALLOC_FAIL;
+    gap_pt new_gap = pool_mgr->gap_ix,
+    gap_t temp_gap;
+
+    for(unsigned index = pool_mgr->gap_ix_capacity; index > 0; index--) {
+        if(new_gap[index].size < new_gap[index-1].size) {
+            temp_gap = new_gap[index];
+            new_gap[index-1] = temp_gap;
+            new_gap[index] = temp_gap;
+        }
+    }
+
+    return ALLOC_OK;
 }
 
 
