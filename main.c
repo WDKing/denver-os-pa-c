@@ -73,14 +73,14 @@ int main(int argc, char *argv[]) {
     /* Personal & Pre-change Testing Code */
 
     printf("%ld\n", __STDC_VERSION__);
-    pool = NULL;
+    pool;
 
     /* Test mem_init */
     status = mem_init();
     assert(status == ALLOC_OK);
 
     /* Test mem_pool_open */
-    pool = mem_pool_open(POOL_SIZE, FIRST_FIT); // TODO add policy to pool
+    pool = mem_pool_open(POOL_SIZE, FIRST_FIT);
     assert(pool);
 
     /* Test mem_new_alloc */
