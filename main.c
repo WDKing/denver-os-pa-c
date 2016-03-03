@@ -113,7 +113,7 @@ void print_pool(pool_pt pool) {
     mem_inspect_pool(pool, &segs, &size);
 
     assert(segs);
-    // assert(size>0);
+    assert(size);
 printf("Here. %u\n",size);
     for (unsigned u = 0; u < size; u++){
 printf("There.\n");
