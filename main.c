@@ -113,11 +113,12 @@ void print_pool(pool_pt pool) {
     mem_inspect_pool(pool, &segs, &size);
 
     assert(segs);
-    assert(size);
-
-    for (unsigned u = 0; u < size; u ++)
-        printf("%10lu - %s\n", (unsigned long) segs[u].size, (segs[u].allocated) ? "alloc" : "gap");
-
+    // assert(size>0);
+printf("Here. %u\n",size);
+    for (unsigned u = 0; u < size; u++){
+printf("There.\n");
+    printf("%10lu - %s\n", (unsigned long) segs[u].size, (segs[u].allocated) ? "alloc" : "gap");
+}
     free(segs);
 
     printf("\n");
