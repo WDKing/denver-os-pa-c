@@ -15,6 +15,43 @@ int main(int argc, char *argv[]) {
     const unsigned POOL_SIZE = 1000000;
     pool_pt pool = NULL;
 
+/*
+pool_pt pool2 = NULL;
+mem_init();
+    pool2 = mem_pool_open(POOL_SIZE,FIRST_FIT);
+    print_pool(pool2);
+    alloc_pt alloca1 = mem_new_alloc(pool2, 200);
+    print_pool(pool2);
+    alloc_pt alloca2 = mem_new_alloc(pool2, 2000);
+    print_pool(pool2);
+    alloc_pt alloca3 = mem_new_alloc(pool2, 3000);
+    print_pool(pool2);
+    alloc_pt alloca4 = mem_new_alloc(pool2, 74500);
+    print_pool(pool2);
+printf("main, in between adds and deletes.\n");
+printf("main, de-allocation 1: %u\n",(unsigned)alloca1->size);
+    mem_del_alloc(pool2,alloca1);
+    print_pool(pool2);
+printf("main, de-allocation 3: %u\n",(unsigned)alloca3->size);
+    mem_del_alloc(pool2,alloca3);
+    print_pool(pool2);
+printf("main, de-allocation 4: %u\n",(unsigned)alloca4->size);
+    mem_del_alloc(pool2,alloca4);
+    print_pool(pool2);
+printf("main, de-allocation 2: %u\n",(unsigned)alloca2->size);
+    mem_del_alloc(pool2,alloca2);
+    print_pool(pool2);
+
+    mem_pool_close(pool2);
+mem_free();
+*/
+
+
+
+
+
+
+
     alloc_status status = mem_init();
     assert(status == ALLOC_OK);
 //printf("main.\nPool_size: %u\n\n",POOL_SIZE);
@@ -33,10 +70,11 @@ int main(int argc, char *argv[]) {
 
 
     print_pool(pool);
-printf("main:: pre-alloc series.\n");
+printf("main:: pre-alloc series.\n");//todo
     // + alloc-0
     alloc_pt alloc0 = mem_new_alloc(pool, 100);
-printf("main:: alloc0->size: %u\n",(unsigned)alloc0->size);
+printf("main:: alloc0->size: %u.\n",
+       (unsigned)alloc0->size);//todo
     assert(alloc0);
 
     print_pool(pool);
@@ -44,7 +82,7 @@ printf("main:: alloc0->size: %u\n",(unsigned)alloc0->size);
     // + alloc-1
     alloc_pt alloc1 = mem_new_alloc(pool, 1000);
     assert(alloc1);
-
+printf("main:: alloc1->size: %u\n",(unsigned)alloc1->size);//todo
     print_pool(pool);
 
     // - alloc-0
@@ -117,9 +155,10 @@ printf("Enter print_pool.\n");
     assert(segs);
     assert(size);
     for (unsigned u = 0; u < size; u++){
-    printf("%10lu - %s\n", (unsigned long) segs[u].size, (segs[u].allocated) ? "alloc" : "gap");
-}
-    free(segs);
+    printf("%10lu - %s\n", (unsigned long) segs[u].size, (segs[u].allocated) ? "alloc" : "gap"); }
+printf("print_pool, post printing.");
 
+    free(segs);
+printf("post free segs\n");
     printf("\n");
 }
