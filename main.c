@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 
 
     print_pool(pool);
-
+printf("main:: pre-alloc series.\n");
     // + alloc-0
     alloc_pt alloc0 = mem_new_alloc(pool, 100);
 printf("main:: alloc0->size: %u\n",(unsigned)alloc0->size);
