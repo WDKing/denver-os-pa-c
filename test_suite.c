@@ -140,14 +140,11 @@ static void test_pool_store_smoketest(void **state) {
         INFO("Initializing pool store\n");
         status = mem_init();
         assert_int_equal(status, ALLOC_OK);
-
         status = mem_init();
         assert_int_equal(status, ALLOC_CALLED_AGAIN);
-
         INFO("Closing pool store\n");
         status = mem_free();
         assert_int_equal(status, ALLOC_OK);
-
         status = mem_free();
         assert_int_equal(status, ALLOC_CALLED_AGAIN);
     }
