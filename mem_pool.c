@@ -106,17 +106,12 @@ alloc_status mem_init() {
     // note: holds pointers only, other functions to allocate/deallocate
     alloc_status mem_init_status = ALLOC_FAIL;
 
-//TODO printf("Enter mem_init.\n");
+
     if(!pool_store) {
-//TODO printf("mem_init:: prior to initialization\n");
-//assert(!pool_store);
-//TODO printf("mem_init: pre-alloc, %s. Value of pool_store:  %p, %p\n",(pool_store)?"Not Null":"Null", pool_store, &pool_store);
+
         pool_store = calloc( MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_pt));
-//TODO printf("mem_init: pre-alloc, %s. Value of pool_store: %p, %p, %p\n",(pool_store)?"Not Null":"Null",*pool_store, pool_store, &pool_store);
-//TODO assert(pool_store);
-//TODO printf("mem_init:: pool_store: %s",(mem_init)?"Mem Not Null":"Mem Null");
+
         if (pool_store) {
-//TODO not needed, delete           ((pool_pt) pool_store)->mem = (char *) *pool_store;
             pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
             mem_init_status = ALLOC_OK;
         }
@@ -134,27 +129,17 @@ alloc_status mem_free() {
     // can free the pool store array
     // update static variables
 
-    alloc_status free_status = ALLOC_FAIL, pool_close_status = ALLOC_OK;
-//TODO printf("mem_free:: initial\n");
+    alloc_status free_status = ALLOC_FAIL;
+
     if (!pool_store) {
-//TODO printf("mem_free:: called again.\n");
         free_status = ALLOC_CALLED_AGAIN;
     }
     else {
-     //   for (int index = 0; index < pool_store_size; index++) {
-       //     if(pool_store[index]) {
-           //     pool_close_status = ALLOC_FAIL;
-         //   }
-       // }
-//TODO printf("mem_free: pre-free, %s. Value of pool_store: %p, %p, %p\n",(pool_store)?"Not Null":"Null",*pool_store, pool_store, &pool_store);
-            // TODO Free provides signal fault
             free(pool_store);
             pool_store = NULL;
             pool_store_capacity = 0;
             pool_store_size = 0;
-//TODO printf("mem_free: post-free, %s. Value of pool_store: %p,  %p\n",(pool_store)?"Not Null":"Null", pool_store, &pool_store);
             free_status = ALLOC_OK;
-
     }
 
     return free_status;
@@ -180,10 +165,12 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     // return the address of the mgr, cast to (pool_pt)
 
     pool_mgr_pt new_pool_mgr = NULL;
-    pool_pt new_pool = NULL;
+    char *new_pool = NULL;
     node_pt new_node_heap = NULL;
-    gap_pt new_gap_pt = NULL;
-//printf("Enter mem_pool_open:: size: %u\n",(unsigned)size); //TODO
+    gap_pt new_gap_ix = NULL;
+
+
+
     if(pool_store != NULL) {
 
         _mem_resize_pool_store();
@@ -192,7 +179,7 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
 
         if(new_pool_mgr) {
 
-            new_pool = (pool_pt)calloc(size,sizeof(pool_t));
+            new_pool = (char *)calloc(size,sizeof(char));
 
             if (new_pool) {
 
@@ -200,12 +187,9 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
 
                 if(new_node_heap) {
 
-                    new_gap_pt = (gap_pt)calloc(MEM_GAP_IX_INIT_CAPACITY,sizeof(gap_t));
+                    new_gap_ix = (gap_pt)calloc(MEM_GAP_IX_INIT_CAPACITY,sizeof(gap_t));
 
-                    if(new_gap_pt) {
-
-                        // Initialize Gap Pointer
-                        new_gap_pt->size = size;
+                    if(new_gap_ix) {
 
                         // Initialize Node Pointer
                         ((node_pt)new_node_heap)->allocated = 0;
@@ -214,54 +198,34 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
                         ((node_pt)new_node_heap)->prev = NULL;
 
                         // Initialize Allocation Pointer
-                        // TODO Which is it?
-                        ((alloc_pt)new_node_heap)->size = size;
-                        ((alloc_pt)new_pool)->size = size;
+                        (new_node_heap[0].alloc_record).mem = new_pool;
+                        (new_node_heap[0].alloc_record).size = size;
 
                         // Initialize Memory Pool
-                        new_pool->policy = policy;
-                        new_pool->total_size = size;
-                        new_pool->alloc_size = 0;
-                        new_pool->num_allocs = 0;
-                        new_pool->num_gaps = 1;
+                        (new_pool_mgr->pool).mem = new_pool;
+                        (new_pool_mgr->pool).policy = policy;
+                        (new_pool_mgr->pool).total_size = size;
+                        (new_pool_mgr->pool).alloc_size = 0;
+                        (new_pool_mgr->pool).num_allocs = 0;
+                        (new_pool_mgr->pool).num_gaps = 1;
 
                         // Initialize Memory Pool Manager
                         new_pool_mgr->total_nodes = MEM_NODE_HEAP_INIT_CAPACITY;
                         new_pool_mgr->used_nodes = 1;
                         new_pool_mgr->gap_ix_capacity = MEM_GAP_IX_INIT_CAPACITY;
 
+                        // Link New Pool Manager to All Else
+                        new_pool_mgr->node_heap = new_node_heap;
+                        new_pool_mgr->gap_ix = new_gap_ix;
+
                         // Initialize Gap Index Information
                         _mem_add_to_gap_ix(new_pool_mgr,
                                            size,
-                                           (node_pt)new_pool);
+                                           (node_pt)new_node_heap);
 
-
-                        // Link Pool to Memory Location
-
-                        // Link Allocation Record to Memory Location
-
-
-                        // Link Node Heap to Allocation Record/Node
-                        // TODO??
-
-                        // Link Gap Index to Node Pointer
-
-                        // Link Pool Manager to Pool
-
-                        // Link Pool Manager to Node Heap
-
-                        // Link Pool Manager to Gap Index
-
-                        /* TODO
-                        new_pool_mgr->gap_ix = new_gap_pt;
-                        new_pool_mgr->node_heap = new_node_heap;
-                        new_pool = (pool_pt)new_pool_mgr;
-                        (new_pool_mgr->gap_ix)->node = ((node_pt)(new_pool));
-                        ((gap_pt)new_pool)->size = size;
-
+                        // Link Pool Store to New Pool Manager
                         pool_store[pool_store_size] = new_pool_mgr;
                         pool_store_size++;
-                        TODO */
                     }
                     else {
                         free(new_node_heap);
@@ -288,9 +252,7 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
             }
         }
     }
-//TODO
-//printf("mem_pool_open, exit:: ((gap_pt)new_pool)->size: %u\n",(unsigned)((gap_pt)new_pool)->size);
-    return new_pool;
+    return (pool_pt)new_pool_mgr;
 }
 
 alloc_status mem_pool_close(pool_pt pool) {
@@ -868,23 +830,15 @@ static alloc_status _mem_resize_gap_ix(pool_mgr_pt pool_mgr) {
     // TODO
     // see above
 
-
-//printf("Enter _mem_resize_gap_ix:: first gap: %u\n",(unsigned)((gap_pt)pool_mgr->gap_ix)->size);//TODO
     alloc_status new_alloc = ALLOC_FAIL;
     gap_pt new_gap_ix;
     unsigned gap_count = 0;
     unsigned new_gap_capacity;
     gap_pt new_gap = pool_mgr->gap_ix;
-//printf("_mem_resize_gap_ix:: gap_ix_capacity: %u\n",pool_mgr->gap_ix_capacity);// TODO
     for(unsigned index = 0; index < pool_mgr->gap_ix_capacity; index++) {
-//printf("_mem_resize_gap_ix, track index: %u, gap_count: %u, size: %u\n",
-//       index,
-//       gap_count,
-//       (unsigned)((gap_pt)(pool_mgr->gap_ix))->size); //TODO
 
         if(new_gap[index].node != NULL && new_gap[index].size != 0) {
             gap_count++;
-
         }
     }
 
@@ -972,34 +926,29 @@ static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
     // update metadata (num_gaps)
     // zero out the element at position num_gaps!
 
-//TODO printf("remove_from_gap - entry:: size: %u\n",size);
+
     gap_pt new_gap = pool_mgr->gap_ix;
     int location = -1;
 
     for(unsigned index = 0; index < pool_mgr->gap_ix_capacity; index++) {
-        printf("remove_from_gap, for loop:: index: %u, size: %u  ",index, (unsigned)new_gap[index].size);
+
         if(new_gap[index].size == size) {
-//        if(new_gap[index].node == node && new_gap[index].size == size) {
-            printf("remove_from_gap, found node:: location: %u\n",index);
             location = index;
             break;
         }
 
     }
-    printf("\n");
+
     if(location == -1) {
-        printf("remove_from_gap, node not found.\n");
         return ALLOC_FAIL;
     }
     else {
-        printf("remove_from_gap, node found\n");
+
         for(int trace = location; trace < pool_mgr->gap_ix_capacity-1; trace++) {
             new_gap[trace] = new_gap[trace+1];
         }
         new_gap[pool_mgr->gap_ix_capacity-1].size = 0;
         new_gap[pool_mgr->gap_ix_capacity-1].node = NULL;
-
-//        pool_mgr->gap_ix_capacity -= 1;
 
         return ALLOC_OK;
     }
@@ -1034,10 +983,6 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
                 temp_gap = new_gap[index];
                 new_gap[index] = new_gap[index - 1];
                 new_gap[index - 1] = temp_gap;
-//printf("mem_sort_gap_ix, switch if:: index: %u, gap at index: %u, gap below index: %u\n", ??TODO
-//                index,
-//                (unsigned)new_gap[index].size,
-//                (unsigned)new_gap[index-1].size);
 
             }
         }
@@ -1049,5 +994,3 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
     }
 
 }
-
-
