@@ -335,7 +335,7 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
     size_t leftover_alloc_size = 0;
     int tally;
 
-    if( (new_pool_mgr->gap_ix)->size > 0 ) {
+    if( (new_pool_mgr->gap_ix)->size > 0 ) {  // Check first gap, if zero there is no available gap
 
         new_status = _mem_resize_node_heap(new_pool_mgr);
         if( new_status == ALLOC_FAIL) {
@@ -400,7 +400,10 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
         if(leftover_alloc_size == 0) {
             /* Set Node to Allocated */
             working_node->used = 1;
-
+            /* Reduce number of gaps, since no gap leftover */
+            pool->num_gaps--;
+            /* Assign Node Found to Allocation Pointer */
+            new_alloc_pt = (alloc_pt)working_node;
         }
             /* Desired size is smaller than located gap */
         else {
@@ -511,8 +514,8 @@ alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
     pool_mgr_pt new_pool_mgr = (pool_mgr_pt)pool;
     /* Node_pt to travel through node heap */
     node_pt working_node = new_pool_mgr->node_heap;
-    /* Node to find */
-    node_pt node_to_find = (node_pt)alloc;
+    /* Node to Delete */
+    node_pt node_to_delete;
     /* Boolean to determine if node was found */
     int found = 0;
     size_t working_size;
@@ -548,16 +551,19 @@ alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
                     if ( new_status == ALLOC_OK) {
                         ((gap_pt) working_node)->size = ((gap_pt) working_node)->size
                                                         + working_size;
-                        (working_node->next)->used = 0;
-                        (working_node->next)->allocated = 0;
-                        new_pool_mgr->used_nodes = new_pool_mgr->used_nodes - 1;
+                        node_to_delete = working_node->next;
+//                        (working_node->next)->used = 0;
+                        node_to_delete->used = 0;
+//                       (working_node->next)->allocated = 0;
+                        node_to_delete->allocated = 0;
+                        new_pool_mgr->used_nodes -= 1;
                         ((pool_pt) new_pool_mgr)->num_gaps -= 1;
 
-                        if (((working_node)->next)->next != NULL) {
-                            (((working_node)->next)->next)->prev = working_node;
-                            ((working_node->next)->next) = NULL;
-                            ((working_node->next)->prev) = NULL;
-                            (working_node)->next = ((working_node->next)->next);
+                        if (node_to_delete->next != NULL) {
+                            (node_to_delete->next)->prev = working_node;
+                            working_node->next = node_to_delete->next;
+                            node_to_delete->next = NULL;
+                            node_to_delete->prev = NULL;
                         }
                         else {
                             working_node->next = NULL;
@@ -581,16 +587,18 @@ alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
                         ((pool_pt) new_pool_mgr)->num_gaps -= 1;
 
                         if(working_node->next != NULL) {
+                            node_to_delete = working_node;
                             working_node = working_node->prev;
 
-                            ((working_node->next)->next)->prev = working_node;
-                            (working_node->next)->prev = NULL;
-                            (working_node->next)->next = NULL;
-                            working_node->next = (working_node->next)->next;
+                            (node_to_delete->next)->prev = working_node;
+                            working_node->next = node_to_delete->next;
+                            node_to_delete->prev = NULL;
+                            node_to_delete->next = NULL;
 
                         }
                         else {
                             working_node = working_node->prev;
+                            (working_node->next)->prev = NULL;
                             working_node->next = NULL;
                         }
                     }
