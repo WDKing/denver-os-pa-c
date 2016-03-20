@@ -552,9 +552,7 @@ alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
                         ((gap_pt) working_node)->size = ((gap_pt) working_node)->size
                                                         + working_size;
                         node_to_delete = working_node->next;
-//                        (working_node->next)->used = 0;
                         node_to_delete->used = 0;
-//                       (working_node->next)->allocated = 0;
                         node_to_delete->allocated = 0;
                         new_pool_mgr->used_nodes -= 1;
                         ((pool_pt) new_pool_mgr)->num_gaps -= 1;
@@ -719,6 +717,7 @@ static alloc_status _mem_resize_gap_ix(pool_mgr_pt pool_mgr) {
     unsigned gap_count = 0;
     unsigned new_gap_capacity;
     gap_pt new_gap = pool_mgr->gap_ix;
+
     for(unsigned index = 0; index < pool_mgr->gap_ix_capacity; index++) {
 
         if(new_gap[index].node != NULL && new_gap[index].size != 0) {
@@ -758,18 +757,19 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
     int locator = -1;
 
     if(new_status == ALLOC_OK) {
+/* TODO
         int finder = 0;
-        while(locator < 0 && finder < pool_mgr->gap_ix_capacity){
+        while (locator < 0 && finder < pool_mgr->gap_ix_capacity) {
 
-            if(pool_mgr->gap_ix[finder].node == NULL
-               && pool_mgr->gap_ix[finder].size == 0) {
+            if (pool_mgr->gap_ix[finder].node == NULL
+                && pool_mgr->gap_ix[finder].size == 0) {
 
                 locator = finder;
             }
             finder++;
         }
 
-        if(locator < 0) {
+        if (locator < 0) {
             new_status = ALLOC_FAIL;
         }
         else {
@@ -777,6 +777,9 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
             pool_mgr->gap_ix[locator].node = node;
 
         }
+TODO*/
+        (pool_mgr->gap_ix)[pool_mgr->gap_ix_capacity - 1].size = size;
+        (pool_mgr->gap_ix)[pool_mgr->gap_ix_capacity - 1].node = node;
 
         _mem_sort_gap_ix(pool_mgr);
     }
@@ -834,10 +837,16 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
 
     if(new_gap) {
         for (unsigned index = pool_mgr->gap_ix_capacity-1; index > 0; index--) {
+            // If: lower gap is smaller, and not zero
+            // If: higher gap is greater, and lower is zero
+            // If  gaps are the same and address of higher gap is less
+            // Then: switch gaps
             if( (new_gap[index].size < new_gap[index - 1].size
                  && new_gap[index].size != 0 )
                 || (new_gap[index].size > new_gap[index - 1].size
-                    && new_gap[index].size == 0 )) {
+                    && new_gap[index-1].size == 0 )
+                || (new_gap[index].size == new_gap[index-1].size
+                    && &((new_gap[index].node)->alloc_record).mem < &((new_gap[index-1].node)->alloc_record).mem ) ) {
                 temp_gap = new_gap[index];
                 new_gap[index] = new_gap[index - 1];
                 new_gap[index - 1] = temp_gap;
