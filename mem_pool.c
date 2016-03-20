@@ -355,6 +355,7 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
 
                 if(next_node->allocated == 0 && ((alloc_pt)next_node)->size >= size) {
                     working_node = next_node;
+                    break;
                 }
 
                 next_node = next_node->next;
@@ -370,7 +371,7 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
                     break;
                 }
                 tally++;
-                *next_gap = ((new_pool_mgr->gap_ix)[tally]);
+                next_gap = &((new_pool_mgr->gap_ix)[tally]);
             }
         }
 
