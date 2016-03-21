@@ -5,6 +5,10 @@
  * Programming Assignment 1 
  * Created by Ivo Georgiev on 2/9/16.
  * Modified by William King
+ * Group Work Completed alongside: 
+ *        Michael Palme
+ *        Adam Lee
+ *        Mahesh Bhattarai
  * Version: 20March2016-0500
  */
 
