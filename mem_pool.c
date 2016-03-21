@@ -5,7 +5,7 @@
  * Programming Assignment 1 
  * Created by Ivo Georgiev on 2/9/16.
  * Modified by William King
- * Version: 20Feb2016-2231
+ * Version: 20March2016-0500
  */
 
 #include <stdlib.h>
@@ -266,7 +266,6 @@ alloc_status mem_pool_close(pool_pt pool) {
     alloc_status free_pool_status = ALLOC_FAIL;
     pool_mgr_pt new_pool_mgr = (pool_mgr_pt)pool;
     unsigned count = 0;
-
 
     if(new_pool_mgr != NULL) {
 
@@ -755,30 +754,8 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
     // check success
 
     alloc_status new_status = _mem_resize_gap_ix(pool_mgr);
-    int locator = -1;
 
     if(new_status == ALLOC_OK) {
-/* TODO
-        int finder = 0;
-        while (locator < 0 && finder < pool_mgr->gap_ix_capacity) {
-
-            if (pool_mgr->gap_ix[finder].node == NULL
-                && pool_mgr->gap_ix[finder].size == 0) {
-
-                locator = finder;
-            }
-            finder++;
-        }
-
-        if (locator < 0) {
-            new_status = ALLOC_FAIL;
-        }
-        else {
-            (pool_mgr->gap_ix)[locator].size = size;
-            pool_mgr->gap_ix[locator].node = node;
-
-        }
-TODO*/
         (pool_mgr->gap_ix)[pool_mgr->gap_ix_capacity - 1].size = size;
         (pool_mgr->gap_ix)[pool_mgr->gap_ix_capacity - 1].node = node;
 
